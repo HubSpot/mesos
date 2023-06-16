@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include <stdint.h>
+#include <cstdlib>
 
 #include <iostream>
 #include <map>
@@ -104,13 +105,25 @@ public:
     const Timeout initLoopTimeout = Timeout::in(Minutes(10));
 
     while (!initLoopTimeout.expired()) {
-      zh = zookeeper_init(
+      char const* certs = getenv("ZK_SSL_CERTS");
+      if (certs != NULL) {
+        zh = zookeeper_init_ssl(
+          servers.c_str(),
+          certs,
+          event,
+          static_cast<int>(sessionTimeout.ms()),
+          nullptr,
+          &callback,
+          0);
+      } else {
+        zh = zookeeper_init(
           servers.c_str(),
           event,
           static_cast<int>(sessionTimeout.ms()),
           nullptr,
           &callback,
           0);
+      }
 
       // Unfortunately, EINVAL is highly overloaded in zookeeper_init
       // and can correspond to:
